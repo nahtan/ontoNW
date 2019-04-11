@@ -1,0 +1,10 @@
+Package: ontoNW
+Title: Gene-Ontology Relationship Network
+Version: 0.0.0.9000
+Authors@R: person("Nathan", "Lemonnier", email = "nathanael.lemonnier@gmail.com", role = c("aut", "cre"))
+Description: Build gene-ontology relationship static and dynamic network.
+Depends: R (>= 3.5.1)
+License: What license is it under?
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.1
