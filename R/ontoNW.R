@@ -18,7 +18,7 @@
 #' @import igraph
 #' @import scales
 #' @import visNetwork
-#' 
+#'
 #' @author Nathan Lemonnier \email{nathanael.lemonnier@@gmail.com}
 #' 
 #' @examples
@@ -58,7 +58,7 @@ ontoNW <- function(onto, cutoff=0.05, pdf=T, html=T, dynamic=T){
     )
   , pval = c(
       rep(NA,length(genelist))
-    , as.character(onto$BH.FDR.p.value)
+    , as.character(onto$fdr)
   )
   , name = c(
       genelist
@@ -116,9 +116,9 @@ ontoNW <- function(onto, cutoff=0.05, pdf=T, html=T, dynamic=T){
 
   #network and plot with FDR cutoff
   net.cut <- delete_edges(net, E(net)[weight>cutoff])
-  V(net.cut)$degree[1:17] <- as.data.frame(table(as_edgelist(net.cut)[,1]))[match(V(net.cut)$label[1:17],as.character(as.data.frame(table(as_edgelist(net.cut)[,1]))[,1])),2]
-  V(net.cut)$degree[18:nrow(nodes)] <- as.data.frame(table(as_edgelist(net.cut)[,2]))[match(V(net.cut)$label[18:nrow(nodes)],as.character(as.data.frame(table(as_edgelist(net.cut)[,2]))[,1])),2]
-  colrs <- cbind(as.character(as.data.frame(table(V(net.cut)$type))[,1]), rbind("skyblue","skyblue2","skyblue4","yellow3","lightgreen","red"))
+  V(net.cut)$degree[nodesgenes] <- as.data.frame(table(as_edgelist(net.cut)[,1]))[match(V(net.cut)$label[nodesgenes],as.character(as.data.frame(table(as_edgelist(net.cut)[,1]))[,1])),2]
+  V(net.cut)$degree[nodesonto] <- as.data.frame(table(as_edgelist(net.cut)[,2]))[match(V(net.cut)$label[nodesonto],as.character(as.data.frame(table(as_edgelist(net.cut)[,2]))[,1])),2]
+  colrs <- cbind(as.character(as.data.frame(table(V(net.cut)$type))[,1]), as.numeric(as.factor(as.character(as.data.frame(table(V(net.cut)$type))[,1]))))
   V(net.cut)$col <- colrs[match(V(net.cut)$type,colrs[,1]),2]
   net.cut <- delete_vertices(net.cut, V(net.cut)[is.na(V(net.cut)$degree)])
   
@@ -231,7 +231,7 @@ ontoNW <- function(onto, cutoff=0.05, pdf=T, html=T, dynamic=T){
   DynNetwork <- visNetwork(nodesCut, edgesCut, main=paste("Functional enrichment with BH FDR < ",cutoff, " (mds layout)", sep="")) %>%
     visOptions(highlightNearest = TRUE, 
                selectedBy = "type") %>%
-    visIgraphLayout(layout = "layout_with_lgl", physics = F,
+    visIgraphLayout(layout = "layout_with_mds", physics = F,
                     smooth = F, type = "full", randomSeed = NULL,
                     layoutMatrix = NULL)
   if(html==T){
