@@ -13,11 +13,12 @@
 #' @return DynNetwork. visNetwork object and htmlwidget. Cutoff applies.
 #' 
 #' 
-#' @details Layout are lgl for static network and mds for dynamic network. Read igraph and visNetwork documentation.
+#' @details Layout are 'reingold.tilford' for static network and 'layout_nicely' for dynamic network. Read igraph and visNetwork documentation.
 #' 
 #' @import igraph
 #' @import scales
 #' @import visNetwork
+#' @import RColorBrewer
 #'
 #' @author Nathan Lemonnier \email{nathanael.lemonnier@@gmail.com}
 #' 
@@ -35,10 +36,12 @@ ontoNW <- function(onto, cutoff=0.05, pdf=T, html=T, dynamic=T){
   cat("loading required packages...\n")
   cat("   igraph.\n")
   cat("   scales...\n")
+  cat("   RColorBrewer...\n")
 
   #required packages  
-  library(igraph) #for function sumlog
-  library(scales) #for function barplot2
+  library(igraph)
+  library(scales)
+  library(RColorBrewer)
 
   cat("...creating directories...\n")
   #create directories
@@ -69,7 +72,8 @@ ontoNW <- function(onto, cutoff=0.05, pdf=T, html=T, dynamic=T){
     , as.character(onto$type)
   )
     )
-  
+nodes$title <- nodes$id
+
   cat("...building edges table...\n")
   #edges table
   edges <- t(read.table(text=as.character(onto$genes[1]), sep=",", header=F, colClasses = "character"))
@@ -118,15 +122,23 @@ ontoNW <- function(onto, cutoff=0.05, pdf=T, html=T, dynamic=T){
   net.cut <- delete_edges(net, E(net)[weight>cutoff])
   V(net.cut)$degree[nodesgenes] <- as.data.frame(table(as_edgelist(net.cut)[,1]))[match(V(net.cut)$label[nodesgenes],as.character(as.data.frame(table(as_edgelist(net.cut)[,1]))[,1])),2]
   V(net.cut)$degree[nodesonto] <- as.data.frame(table(as_edgelist(net.cut)[,2]))[match(V(net.cut)$label[nodesonto],as.character(as.data.frame(table(as_edgelist(net.cut)[,2]))[,1])),2]
-  colrs <- cbind(as.character(as.data.frame(table(V(net.cut)$type))[,1]), as.numeric(as.factor(as.character(as.data.frame(table(V(net.cut)$type))[,1]))))
+  
+  #build colors scheme
+  ntype <- length(table(nodes$type))
+  colrs <- cbind(as.character(as.data.frame(table(V(net.cut)$type))[,1])
+                 , brewer.pal(n = ntype, name = "Pastel2")
+                 )
+  colrs <- colrs[1:ntype,]
   V(net.cut)$col <- colrs[match(V(net.cut)$type,colrs[,1]),2]
+  
+  #delete unnecessary vertices
   net.cut <- delete_vertices(net.cut, V(net.cut)[is.na(V(net.cut)$degree)])
   
   
-  l.cut <- layout_with_lgl(net.cut)
+  l.cut <- layout.reingold.tilford(net.cut, circular=T)
   l.cut <- norm_coords(l.cut, ymin=-1, ymax=1, xmin=-1, xmax=1)
   if(pdf==T){
-    pdf("StaticNetwork_lgl.pdf", width = 10, height = 10, compress = F)
+    pdf("StaticNetwork_reingold_tilford.pdf", width = 10, height = 10, compress = F)
     plot(net.cut,
          edge.arrow.size=.4,
          edge.curved=0,
@@ -137,12 +149,13 @@ ontoNW <- function(onto, cutoff=0.05, pdf=T, html=T, dynamic=T){
          vertex.label.color="black",
          vertex.label.cex=.7,
          vertex.size=V(net.cut)$degree/1.5,
+         vertex.label.dist=0,
          rescale=T,
          layout=l.cut*1.2)
     title(main=paste("Functional enrichment with FDR < ",cutoff, sep=""))
     legend("topleft",
            legend=colrs[,1], pch=21,
-           col=alpha("black",0.3),
+           col=alpha("white",0.3),
            pt.bg=colrs[,2],
            pt.cex=2.5,
            bty="n",
@@ -153,7 +166,6 @@ ontoNW <- function(onto, cutoff=0.05, pdf=T, html=T, dynamic=T){
            pch="",
            col="black",
            pt.bg=alpha("white",0.1),
-           #pt.cex=c(max(V(net.cut)$degree/2),min(V(net.cut)$degree/2)),
            bty="n",
            ncol=1)
         dev.off()
@@ -169,12 +181,13 @@ ontoNW <- function(onto, cutoff=0.05, pdf=T, html=T, dynamic=T){
          vertex.label.color="black",
          vertex.label.cex=.7,
          vertex.size=V(net.cut)$degree/1.5,
+         vertex.label.dist=0,
          rescale=T,
          layout=l.cut*1.2)
     title(main=paste("Functional enrichment with FDR < ",cutoff, sep=""))
     legend("topleft",
            legend=colrs[,1], pch=21,
-           col=alpha("black",0.3),
+           col=alpha("white",0.3),
            pt.bg=colrs[,2],
            pt.cex=2.5,
            bty="n",
@@ -185,7 +198,6 @@ ontoNW <- function(onto, cutoff=0.05, pdf=T, html=T, dynamic=T){
            pch="",
            col="black",
            pt.bg=alpha("white",0.1),
-           #pt.cex=c(max(V(net.cut)$degree/2),min(V(net.cut)$degree/2)),
            bty="n",
            ncol=1)
   }
@@ -201,7 +213,7 @@ ontoNW <- function(onto, cutoff=0.05, pdf=T, html=T, dynamic=T){
   nodesCut <- rbind(nodesCut, nodes[match(unique(edgesCut$to),nodes$id),])
   nodesCut$shape <- "dot"  
   nodesCut$shadow <- TRUE # Nodes will drop shadow
-  nodesCut$title <- nodesCut$description # Text on click
+ # nodesCut$title <- nodesCut$description # Text on click
   nodesCut$label <- nodesCut$id # Node label
   
   nodesgenesCut <- which(nodesCut$name %in% nodes$name[which(nodes$type=='gene')]==T)
@@ -225,18 +237,20 @@ ontoNW <- function(onto, cutoff=0.05, pdf=T, html=T, dynamic=T){
   nodesCut$color.border <- alpha("white",0.1)
   nodesCut$color.highlight.background <- alpha("white",0.1)
   nodesCut$color.highlight.border <- alpha("white",0.1)
-  
+  nodesCut$label <- nodesCut$name 
   edgesCut$color <- alpha("black",0.3)    # line color  
   
-  DynNetwork <- visNetwork(nodesCut, edgesCut, main=paste("Functional enrichment with BH FDR < ",cutoff, " (mds layout)", sep="")) %>%
+  DynNetwork <- visNetwork(nodesCut, edgesCut, main=paste("Functional enrichment with BH FDR < ",cutoff, sep="")) %>%
     visOptions(highlightNearest = TRUE, 
                selectedBy = "type") %>%
-    visIgraphLayout(layout = "layout_with_mds", physics = F,
-                    smooth = F, type = "full", randomSeed = NULL,
-                    layoutMatrix = NULL)
+    visIgraphLayout(layout = "layout_nicely", physics = T,
+                    smooth = T, type = "full", randomSeed = NULL,
+                    layoutMatrix = NULL) %>%
+    visInteraction(navigationButtons = TRUE) %>%
+    visPhysics(stabilization = FALSE)
   if(html==T){
   visSave(DynNetwork
-          , file="DynamicNetwork_mds.html")
+          , file="DynamicNetwork.html")
   }else{DynNetwork}
   }else{}
   
