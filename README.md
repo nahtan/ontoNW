@@ -43,4 +43,6 @@ onto=data.frame(id  = c("GO:0002376", "GO:0032634")
                 )
 ontoNW(onto, cutoff=0.05, dynamic=T, pdf=F, html=T, palette="Accent")       
 ```
-[[https://github.com//nahtan/ontoNW/StaticNetwork_reingold_tilford.png|alt=ontoNWstatic]]
+
+![ontoNWstatic](https://nahtan.github.com/ontoNW/StaticNetwork_reingold_tilford.png)
+
